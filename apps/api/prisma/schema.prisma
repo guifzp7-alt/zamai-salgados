@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductCategory {
+  SALGADOS
+  BEBIDAS
+  DOCES
+  OUTROS
+}
+
+enum SaleStatus {
+  PENDING
+  APPROVED
+  CANCELED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  PIX
+  CASH
+  CARD
+  CREDIT
+}
+
+enum CreditStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  SALE
+  ADJUSTMENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("ADMIN")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  name          String
+  category      ProductCategory
+  price         Decimal         @db.Decimal(10, 2)
+  stockQuantity Int             @default(0)
+  minimumStock  Int             @default(0)
+  photoUrl      String?
+  internalCode  String          @unique
+  active        Boolean         @default(true)
+  favorite      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  saleItems     SaleItem[]
+  movements     StockMovement[]
+}
+
+model Customer {
+  id             String          @id @default(cuid())
+  name           String
+  sector         String
+  phone          String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  sales          Sale[]
+  creditPayments CreditPayment[]
+}
+
+model Sale {
+  id              String        @id @default(cuid())
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  subtotal        Decimal       @db.Decimal(10, 2)
+  discount        Decimal       @default(0) @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  status          SaleStatus    @default(APPROVED)
+  creditStatus    CreditStatus?
+  receivedAmount  Decimal?      @db.Decimal(10, 2)
+  changeAmount    Decimal?      @db.Decimal(10, 2)
+  mercadoPagoId   String?
+  pixQrCode       String?
+  pixCopyPaste    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  items           SaleItem[]
+  payments        Payment[]
+  creditPayments  CreditPayment[]
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  saleId         String
+  sale           Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  method         PaymentMethod
+  amount         Decimal       @db.Decimal(10, 2)
+  status         SaleStatus    @default(APPROVED)
+  transactionId  String?
+  createdAt      DateTime      @default(now())
+}
+
+model CreditPayment {
+  id          String        @id @default(cuid())
+  customerId  String
+  customer    Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  saleId      String?
+  sale        Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  amount      Decimal       @db.Decimal(10, 2)
+  method      PaymentMethod
+  note        String?
+  createdAt   DateTime      @default(now())
+}
+
+model StockMovement {
+  id         String            @id @default(cuid())
+  productId  String
+  product    Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type       StockMovementType
+  quantity   Int
+  reason     String?
+  createdAt  DateTime          @default(now())
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,20 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Zamai Salgados",
+    short_name: "Zamai",
+    description: "PDV e gestao completa de salgados.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#f8fafc",
+    theme_color: "#7f1d1d",
+    icons: [
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml"
+      }
+    ]
+  };
+}
